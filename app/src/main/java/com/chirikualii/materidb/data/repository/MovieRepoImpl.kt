@@ -1,13 +1,17 @@
 package com.chirikualii.materidb.data.repository
 
 import android.util.Log
+import com.chirikualii.materidb.data.local.MovieDb
+import com.chirikualii.materidb.data.local.MovieDbImpl
+import com.chirikualii.materidb.data.local.entity.MovieEntity
 import com.chirikualii.materidb.data.model.Movie
+import com.chirikualii.materidb.data.model.MovieType
 import com.chirikualii.materidb.data.remote.ApiService
 import com.google.gson.Gson
 
 class MovieRepoImpl(
-    private val service: ApiService): MovieRepo {
-
+    private val service: ApiService,
+    private val movieDbImpl: MovieDbImpl): MovieRepo {
     override suspend fun getPopularMovie(): List<Movie> {
        try {
            val response = service.getPopularMovie()
@@ -17,7 +21,7 @@ class MovieRepoImpl(
                val listData = listMovie?.results?.map {
                    Movie(
                        title = it.title,
-                       genre = it.releaseDate,
+                       releaseDate = it.releaseDate,
                        imagePoster = it.posterPath,
                        overview = it.overview,
                        backdrop = it.backdropPath
@@ -25,6 +29,26 @@ class MovieRepoImpl(
                }
                Log.d(MovieRepoImpl::class.simpleName,
                    "getPopularMovie : ${Gson().toJsonTree(listData)}")
+
+
+               val lisMovieEntity = listMovie?.results?.map {
+
+                   MovieEntity(
+                       movieId = it.id.toString(),
+                       title = it.title,
+                       releaseDate = it.releaseDate,
+                       imagePoster = it.posterPath,
+                       overview = it.overview,
+                       backdrop = it.backdropPath,
+                       typeMovie = MovieType.popular
+                   )
+
+               }
+
+               //insert to db
+               lisMovieEntity?.forEach {
+                   movieDbImpl.getDatabase().movieDao().insertMovie(it)
+               }
                return listData ?: emptyList()
            }else{
                Log.e(MovieRepoImpl::class.simpleName,
@@ -46,7 +70,7 @@ class MovieRepoImpl(
                 val listData = listMovie?.results?.map {
                     Movie(
                         title = it.title,
-                        genre = it.releaseDate,
+                        releaseDate = it.releaseDate,
                         imagePoster = it.posterPath,
                         overview = it.overview,
                         backdrop = it.backdropPath
